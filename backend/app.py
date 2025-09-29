@@ -21,7 +21,7 @@ cred = credentials.Certificate("serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-app = Flask(__name__, static_folder='../frontend', static_url_path='/')
+app = Flask(__name__, static_folder='../AILawyerFrontend/dist/public', static_url_path='/')
 
 # --- HELPER FUNCTIONS ---
 def extract_text_from_file(file_stream, file_extension):
@@ -312,13 +312,18 @@ def explain_term():
         print(f"Error explaining term: {e}")
         return jsonify({"error": "Could not get an explanation."}), 500
 
-@app.route('/')
-def serve_index():
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_index(path):
+    # For any non-API route, serve the React app's index.html
+    if path and not path.startswith('api/'):
+        # Check if it's a static asset
+        if '.' in path.split('/')[-1]:  # Has file extension
+            try:
+                return send_from_directory(app.static_folder, path)
+            except:
+                pass
     return send_from_directory(app.static_folder, 'index.html')
-
-@app.route('/share.html')
-def serve_share_page():
-    return send_from_directory(app.static_folder, 'share.html')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
